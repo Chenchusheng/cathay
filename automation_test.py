@@ -1,71 +1,55 @@
-from appium import webdriver
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
-import time
-from appium.webdriver.common.touch_action import TouchAction
+from selenium.common.exceptions import TimeoutException
 
 
-capabilities = {
-    "platformName": "Android",
-    "deviceName": "19301FDEE00AQ8",
-    "platformVersion": "14",
-    "appPackage": "org.mozilla.firefox",
-    "appActivity": "org.mozilla.firefox.App",
-}
+class Automation(object):
+    def __init__(self):
+        self.option = Options()
+        self.chrome_driver_path = '/users/Stanley/Downloads/chromedriver-mac-x64/chromedriver'
+        chrome_service = ChromeService(executable_path=self.chrome_driver_path)
+        self.driver = webdriver.Chrome(service=chrome_service, options=self.option)
+        self.wait = WebDriverWait(self.driver, 20)
+    
+    def visitHomePage(self):
+        self.driver.get("https://www.cathaybk.com.tw/cathaybk/")          
+        try:
+            self.wait.until(EC.visibility_of_element_located((By.XPATH, '//div[contains(@class, "cubre-o-indexKv__wrap")]')))
+            print("HomePage is loading successfully")
+            self.driver.save_screenshot('HomePage.png')
+        except TimeoutException:
+            print("Timeout for loading Homepage")
+    
+    def countCardList(self):
+        self.wait.until(EC.visibility_of_element_located((By.XPATH, '//div[@class="cubre-a-menuSortBtn -l1" and text()="產品介紹"]'))).click()
+        try:
+            self.wait.until(EC.visibility_of_element_located((By.XPATH, '//div[@class="cubre-a-menuSortBtn" and text()="信用卡"]')))
+            print("CreditCard page is loading successfully")
+        except TimeoutException:
+            print("Timeout for loading CreditCard page")
+        cardList = self.wait.until(EC.visibility_of_element_located((By.XPATH, '//div[@class="cubre-a-menuSortBtn" and text()="信用卡"]/../following-sibling::div')))
+        countCardList = cardList.find_elements(By.XPATH,'a')
+        print(f"信用卡選單下面總共有：{len(countCardList)} 個項目")
+        
+    def countSuspendCard(self):
+        self.wait.until(EC.visibility_of_element_located((By.XPATH, '//a[@class="cubre-a-menuLink" and text()="卡片介紹"]'))).click()
+        try:
+            self.wait.until(EC.visibility_of_element_located((By.XPATH, '//a[@class="cubre-m-anchor__btn swiper-slide"]/p[text()="停發卡"]')))
+            print("SuspendCard is loading successfully")
+        except TimeoutException:
+            print("Timeout for loading SuspendCard")
+        cardList = self.wait.until(EC.visibility_of_element_located((By.XPATH, '//section[@data-anchor-block="blockname06"]/div/div[@class="cubre-o-block__component"]/div/div[@class="swiper-wrapper"]')))
+        countSuspendCards = cardList.find_elements(By.XPATH, '*')
+        print(f"(停發)信用卡數量：{len(countSuspendCards)} 張")
 
-appium_server_url = 'http://localhost:4723/wd/hub'
-driver = webdriver.Remote(appium_server_url, capabilities)
-wait = WebDriverWait(driver, 10)
-
-# 開啟官網
-driver.get("https://cathaybk.com.tw/cathaybk/")
-time.sleep(5)
-# 官網截圖
-screenshot_path = "HomePage.png"
-driver.save_screenshot(screenshot_path)
-
-# 進入信用卡列表
-menuList = WebDriverWait(driver, 20).until(EC.presence_of_element_located
-    ((By.XPATH, '//android.webkit.WebView[@text="國泰世華銀行"]/android.view.View/android.view.View/android.view.View[1]/android.view.View/android.view.View[1]')))
-menuList.click()
-
-menuList_select1 = WebDriverWait(driver, 20).until(EC.presence_of_element_located
-    ((By.XPATH, '//android.webkit.WebView[@text="國泰世華銀行"]/android.view.View/android.view.View[2]/android.view.View/android.view.View[3]/android.view.View[2]/android.view.View')))
-menuList_select1.click()
-
-menuList_selectVisa = WebDriverWait(driver, 20).until(EC.presence_of_element_located
-    ((By.XPATH, '//android.webkit.WebView[@text="國泰世華銀行"]/android.view.View/android.view.View[2]/android.view.View/android.view.View[3]/android.view.View[3]/android.view.View')))
-menuList_selectVisa.click()
-
-# 信用卡列表截圖
-screenshot_path = "CreditCard.png"
-driver.save_screenshot(screenshot_path)
-
-# 計算數量
-xpath = '//android.view.View[@content-desc="卡片介紹"]/*'
-elements = driver.find_elements(By.XPATH, xpath)
-element_count = len(elements)
-print(f"項目數量: {element_count}")
-
-# 進入停用卡列表
-cardInfo = WebDriverWait(driver, 20).until(EC.presence_of_element_located
-                      ((By.XPATH, '//android.view.View[@content-desc="卡片介紹"]')))
-cardInfo.click()
-time.sleep(3)
-
-start_x = 1000
-start_y = 1300
-end_x = 100
-end_y = 1300
-driver.swipe(start_x, start_y, end_x, end_y, 500)
-
-width = driver.get_window_size()['width']
-height = driver.get_window_size()['height']
-touch_action = TouchAction(driver)
-touch_action.tap(x=1000, y=1300).perform()
-time.sleep(3)
-
-# 停用卡截圖
-screenshot_path = "SuspendCard.png"
-driver.save_screenshot(screenshot_path)
+if __name__ == "__main__":
+    autotest = Automation()
+    autotest.visitHomePage()
+    autotest.countCardList()
+    autotest.countSuspendCard()
+    
+    autotest.driver.quit()
